@@ -1,0 +1,1754 @@
+---
+title: "Bank marketing campaign analysis"
+author: "Jose Caloca"
+date: "23/4/2021"
+output:
+  rmdformats::downcute:
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(reticulate)
+library(knitr)
+library(rmdformats)
+matplotlib <- import("matplotlib")
+matplotlib$use("Agg", force = TRUE)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=700)
+```
+
+# Introduction.
+
+In recent years, machine learning has become very important in the business world, as the intelligent use of data analytics is key to business success. For this project we will using the Bank Marketing Dataset from a portuguese bank, this dataset was originally uploaded to UCI's Machine Learning Repository. This provides information on a marketing campaign that offers the results of contacts made offering time deposits from the financial institution in which it will be necessary to analyze and find future strategies to improve in future campaigns. A term deposit is a deposit offered by a bank or financial institution at a fixed rate (often better than simply opening a deposit account) in which your money will be returned to you at a specified time of maturity.
+
+The aim of this project is to predict if the client will subscribe (yes/no) a term deposit (variable y), and to determine the factors behind a sucessful marketing campaign, and get a grasp of the features that influence on the probability of subscribing to a term deposit.
+
+For this project we will be using R and Python at the same time in Rstudio - Rmarkdown.
+
+## Data description.
+
+### Load R packages and Python Modules
+
+We will be using the following R packages and Python modules, we will load them as follows:
+
+*- R Packages:*
+
+```{r message = FALSE, warning = FALSE}
+#load R libraries
+library(tidyverse)
+library(DataExplorer)
+library(htmltools)
+library(ggstatsplot)
+library(plotly)
+```
+
+*- Python Modules:*
+
+```{python message = FALSE, warning = FALSE}
+#load Python modules
+import numpy as np
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+import sweetviz as sv
+
+import xgboost as xgb
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_selection import RFE
+from sklearn.model_selection import cross_val_predict, cross_val_score
+
+from sklearn.metrics import confusion_matrix, classification_report, precision_recall_fscore_support, roc_curve, roc_auc_score, accuracy_score, recall_score, precision_score
+
+from sklearn import metrics
+from sklearn.metrics import confusion_matrix
+
+
+```
+
+### Load dataset
+
+The dataset used for this project can be found by clicking [here](https://archive.ics.uci.edu/ml/datasets/Bank+Marketing). More specifically the dataset that we will load is the following: *bank-additional-full.csv*.
+
+For loading the file we will call the *read_csv* function from pandas. It is it important to mention that there must be a folder called **dataset** in your main project folder that contains the aforementioned dataset. Or preferably it can be downloaded directly from the GitHub repository.
+
+```{python }
+#Import dataset
+dataset = pd.read_csv("dataset/bank-additional-full.csv", sep = ";")
+```
+
+Before starting our analysis, we must recode the output variable to a binary class (1 and 0), instead of "yes" and "no" strings.
+
+```{python}
+dataset['y'] = dataset['y'].apply(lambda x: 0 if x =='no' else 1)
+dataset.rename(columns = {"y" : "deposit"}, inplace = True)
+```
+
+The following chart shows a big picture of the dataset:
+
+```{r, include=FALSE}
+dataset <- py$dataset
+plot_intro(dataset)
+```
+
+This dataset has 100% of complete rows, and has no missing values, nor missing columns. Hence, no imputation techniques are needed in any of the variables. Almost the half of the columns are numeric. In overall this is not a heavy dataset since it only occupies 6.6 Mb of memory.
+
+The dataset has 21 columns and 41188 rows. The variables have the following attributes: $\~$
+
+#### Bank client data:
+
+$\~$
+
+1. - age (numeric)
+
+2\. - job : type of job (categorical: 'admin.','blue-collar','entrepreneur','housemaid','management','retired','self-employed','services','student','technician','unemployed','unknown')
+
+3\. - marital : marital status (categorical: 'divorced','married','single','unknown'; note: 'divorced' means divorced or widowed)
+
+4\. - education (categorical: 'basic.4y','basic.6y','basic.9y','high.school','illiterate','professional.course','university.degree','unknown')
+
+5\. - default: has credit in default? (categorical: 'no','yes','unknown')
+
+6\. - housing: has housing loan? (categorical: 'no','yes','unknown')
+
+7\. - loan: has personal loan? (categorical: 'no','yes','unknown')
+$\~$
+
+#### Data related with the last contact of the current campaign:
+
+$\~$
+
+8\. - contact: contact communication type (categorical: 'cellular','telephone')
+
+9\. - month: last contact month of year (categorical: 'jan', 'feb', 'mar', ..., 'nov', 'dec')
+
+10\. - day_of_week: last contact day of the week (categorical: 'mon','tue','wed','thu','fri')
+
+11\. - duration: last contact duration, in seconds (numeric). Important note: this attribute highly affects the output target (e.g., if duration=0 then y='no'). Yet, the duration is not known before a call is performed. Also, after the end of the call y is obviously known. Thus, this input should only be included for benchmark purposes and should be discarded if the intention is to have a realistic predictive model.
+$\~$
+
+#### Other attributes:
+
+$\~$
+
+12\. - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
+
+13\. - pdays: number of days that passed by after the client was last contacted from a previous campaign (numeric; 999 means client was not previously contacted)
+
+14\. - previous: number of contacts performed before this campaign and for this client (numeric)
+
+15\. - poutcome: outcome of the previous marketing campaign (categorical: 'failure','nonexistent','success')
+$\~$
+
+#### Social and economic context attributes
+
+$\~$
+
+16\. - emp.var.rate: employment variation rate - quarterly indicator (numeric)
+
+17\. - cons.price.idx: consumer price index - monthly indicator (numeric)
+
+18\. - cons.conf.idx: consumer confidence index - monthly indicator (numeric)
+
+19\. - euribor3m: euribor 3 month rate - daily indicator (numeric)
+
+20\. - nr.employed: number of employees - quarterly indicator (numeric) $\~$
+
+#### Output variable (desired target):
+
+$\~$
+
+21\. - deposit - has the client subscribed a term deposit? (binary: 'yes','no')
+
+```{python}
+dataset.info()
+```
+
+From the above description we can see that the variable *pdays* (number of days that passed by after the client was last contacted from a previous campaign), those customers that were not previously contacted had a value of 999. To this we are going to recode this variable for zeros (0).
+
+```{python}
+dataset['pdays'] = dataset['pdays'].apply(lambda x: 0 if x ==999 else x)
+```
+
+## 
+
+# Exploratory Data Analysis
+
+The exploratory data analysis (EDA) or descriptive statistics is a preliminary and essential step when it comes to understanding the data with which we are going to work and highly recommended for a correct research methodology.
+
+The objective of this analysis is to explore, describe, summarize and visualize the nature of the data collected in the random variables of the project or research of interest, through the application of simple data summary techniques and graphic methods without assuming assumptions for their interpretation.
+
+For the creation of the EDA graphs we will be using the Python library **sweetviz**. Sweetviz is a library that generates beautiful, high-density visualizations to kickstart EDA with just two lines of code. Output is a fully self-contained HTML application. The output is saved a HTML file in the project folder, and will be loaded to Rmarkdown to render by calling the function **includeHTML** from the **htmltools** package in R.
+
+First, we look at some main summary statistics of our dataset and get a picture of the distribution of each variables.
+
+```{r echo = FALSE, message = FALSE, warning = FALSE}
+dataset <- py$dataset
+dataset$job <- as.factor(dataset$job)
+dataset$marital <- as.factor(dataset$marital)
+dataset$education <- as.factor(dataset$education)
+dataset$default <- as.factor(dataset$default)
+dataset$housing <- as.factor(dataset$housing)
+dataset$loan <- as.factor(dataset$loan)
+dataset$contact <- as.factor(dataset$contact)
+dataset$month <- as.factor(dataset$month)
+dataset$day_of_week <- as.factor(dataset$day_of_week)
+dataset$poutcome <- as.factor(dataset$poutcome)
+dataset$deposit <- as.factor(dataset$deposit)
+
+
+summary(dataset)
+```
+
+From the above table we can state the most of the individuals have an admin and technician job position. Most of the clients (more than the half) are married. More than 50% of the customers have at least completed the high-school.
+
+32588 of the customers in the campaign haven't default in previous financial services. A bit more than the half of the customers have their own house, and far more of them have an own phone. The ownership of a phone might be not relevant nowadays, but years ago this was an important issue.
+
+In average, employees change their jobs around 8% per year in a deflationary context (average CPI of 93.58).
+
+Regarding the visualisation part of our EDA, First we create the report and export it the project folder.
+
+```{python eval = FALSE}
+#EDA using Autoviz
+dataset_eda = sv.analyze(dataset)
+
+#Saving results to HTML file
+dataset_eda.show_html('Exploratory_Data_Analysis.html')
+```
+
+Second, we load the HTML file in the Rmarkdown notebook interface. We will go feature by feature in the following sections to see the range of values they have, how customers are distributed among these.
+
+```{r echo = FALSE}
+htmltools::includeHTML("Exploratory_Data_Analysis.html")
+```
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+$\~$
+
+## EDA analysis:
+
+From the target variable, we can see that `r round(mean(dataset$deposit == 0)*100, 2)` % of the customers haven't subscribed to the financial product offered, therefore we have an imbalanced dataset. This situation will be refectled in the train, validation and test sets when modelling. For that we will use either the undersampling or oversampling techniques.
+
+From the correlation plot we can observe that there are important correlations in several characteristics with respect to the variable "deposit" as well as between them. The above correlation matrix was plotted with all variables. Clearly, "campaign outcome" has a strong correlation with "duration", a moderate correlation with "previous contacts", and mild correlations between "balance", "month of contact" and "number of campaign".
+
+```{r message = FALSE, warning = FALSE, out.width = "150%"}
+grouped_gghistostats(
+    data = dataset,
+    x = age,
+    grouping.var = deposit, # grouping variable
+    normal.curve = TRUE, # superimpose a normal distribution curve
+    normal.curve.args = list(color = "red", size = 1),
+    ggtheme = ggthemes::theme_tufte(),
+    plotgrid.args = list(nrow = 1),
+    ggstatsplot.layer = FALSE,
+    ggplot.component = list(theme(text = element_text(size = 6.3))),
+    annotation.args = list(title = "Age distribution by deposit")
+)
+```
+
+In the age variable, we observe that age is not an element that has much difference between customers who took deposits from those who did not, its average is around 40 years. However, both are 2 different groups statistically speaking due to the low p-value in the t test. The only remarkable difference we can highlight, is the fact that most of the old people subscribed to a deposit.
+
+```{r message = FALSE, warning = FALSE, out.width = "150%"}
+ggbarstats(
+    data = dataset,
+    x = education,
+    y = deposit,
+    title = "Education by deposit subscription",
+    legend.title = "Educational level",
+    ggtheme = hrbrthemes::theme_ipsum_pub()
+)
+```
+
+Education shows a difference between the different levels. For example, some types of clients present an efficiency of 13.72% (university students) while those with basic levels of studies do not reach 9% in some cases. We could say that we should aim to offer this product to clients who have college, professional or high school levels.
+
+In the case of type of work, retirees, students, unemployed and management positions are those who lead with the best results to offer the financial product.
+
+Regarding marital status, we could infer that single clients are a bit more sensitive to acquire the offer of term deposits.
+
+The month variable is a good indicator. Note that the number of contacts and their efficiency varies strongly from month to month. For example, in March we obtained 50% efficiency with very few contacts made (only 500), however, in May 14 thousand contacts were made with only an efficiency of 6.4%
+
+Regarding the variable pdays we can say that most of the clients were contacted for the first time.
+
+```{r message = FALSE, warning = FALSE, out.width = "150%"}
+ggbarstats(
+    data = dataset,
+    x = poutcome,
+    y = deposit,
+    title = "Outcome of the previous marketing campaign by current deposit subscription",
+    legend.title = "Educational level",
+    ggtheme = hrbrthemes::theme_ipsum_pub()
+)
+```
+
+Out of the people that subscribed for a deposit, only 19% of these customers had a previous deposit (sucessfull result) in the previous campaign.
+
+As for the next section regarding the data pre-processing there is no need to impute the data since we don't have missing values, regarding the outliers, we can see few outliers in the variable "age" and we will accept them since there are no regulations regarding the age of a customer to subscribe to a term deposit. If this case study would be credit-risk related, then we would have to discard these outliers or manipulate them.
+
+# Data manipulation
+
+## One-Hot Encoding of categorical variables
+
+Most of our categorical data are variables that contain label values rather than numeric values. The number of possible values is often limited to a fixed set. The problem when modeling using categorical data is that some algorithms can work with categorical data directly, and a preliminary transformation of the variables has to be done prior the modeling process.
+
+For example, a decision tree can be trained directly from categorical data with no data transform required (this depends on the specific implementation).
+
+To this, many machine learning algorithms cannot operate on label data directly. They require all input variables and output variables to be numeric. In general, this is mostly a constraint of the efficient implementation of machine learning algorithms rather than hard limitations on the algorithms themselves.
+
+The main idea is to split the column which contains *categorical data* to many columns depending on the number of categories present in that column. Each column contains "0" or "1" corresponding to which column it has been placed.
+
+First: we create two data sets for numeric and non-numeric data
+
+```{python}
+numerical = dataset.select_dtypes(exclude=['object'])
+categorical = dataset.select_dtypes(include=['object'])
+```
+
+Second: One-hot encode the non-numeric columns
+
+```{python}
+onehot = pd.get_dummies(categorical)
+```
+
+Third: Union the one-hot encoded columns to the numeric ones
+
+```{python}
+df = pd.concat([numerical, onehot], axis=1)
+```
+
+Fourth: Print the columns in the new data set
+
+```{r}
+glimpse(py$df)
+```
+
+With this method we end up with a larger dataframe of 64 columns.
+
+```{python}
+df.shape
+```
+
+## Creation of Training, Validation and Test datasets
+
+In any machine learning project, after a EDA a common practice is to split the dataset into training, test and validation (if applies). For this we set a seed (123) for sampling reproducibility and split the one-hot encoded dataset in a training, validation and test set, by using *pandas and numpy*. The training set will contain 70% of the data, 15% for validation and the remaining 15% for our test set.
+
+```{python}
+# We create the X and y data sets
+X = df.loc[ : , df.columns != 'deposit']
+y = df[['deposit']]
+
+# Create training, evaluation and test sets
+X_train, test_X, y_train, test_y = train_test_split(X, y, test_size=.3, random_state=123)
+X_eval, X_test, y_eval, y_test = train_test_split(test_X, test_y, test_size=.5, random_state=123)
+```
+
+In order to check how imbalanced is our training dataset in terms of our target variable "deposit", we run the following code to calculate the percentage of customers that **did not** subscribe to a term deposit in the train set.
+
+```{python}
+# percentage of defaults and non-defaults in the training set
+round(y_train['deposit'].value_counts()*100/len(y_train['deposit']), 2)
+```
+
+We find that 88.75% of the customer did not subscribe to a term deposit, and 11.25% got this financial product. For modeling purposes our dataset cannot be imbalanced as it would bias our estimations since many algorithms assume a balanced or closely balanced dataset. In the next section we will proceed with a technique that will allow us to balance our training set.
+
+## Balancing dataset
+
+Imbalanced data typically refers to a problem with classification problems where the classes are not represented equally. Most classification data sets do not have exactly equal number of instances in each class, but a small difference often does not matter, however, our dataset is imbalanced.
+
+Our imbalanced dataset is not adequate for predictive modeling, as mentioned above, most of the machine learning algorithms used for classification were designed around the assumption of an equal number of examples for each class. This results in models that have poor predictive performance, specifically for the minority class. This is a problem because typically, the minority class is more important and therefore the problem is more sensitive to classification errors for the minority class than the majority class.
+
+For balancing our dataset we will use the undersampling technique that consists in sampling from the majority class in order to keep only a part of these points. This will reduce the number of rows of our dataset, however, we can afford to apply such method because our training set is quite large.
+
+First we create data sets for deposits and no-deposits:
+
+```{python}
+X_y_train = pd.concat([X_train.reset_index(drop = True), y_train.reset_index(drop = True)], axis = 1)
+count_no_deposit, count_deposit = X_y_train['deposit'].value_counts()
+no_deposit = X_y_train[X_y_train['deposit'] == 0]
+deposit = X_y_train[X_y_train['deposit'] == 1]
+```
+
+Second we undersample the no-deposits
+
+```{python}
+no_deposit_under = no_deposit.sample(count_deposit)
+```
+
+Third, we concatenate the undersampled nondefaults with defaults
+
+```{python}
+train_balanced = pd.concat([no_deposit_under.reset_index(drop = True), deposit.reset_index(drop = True)], axis = 0)
+```
+
+Lastly, we check the proportion of deposit and no deposits in our target variable:
+
+```{python}
+round(train_balanced['deposit'].value_counts()*100/len(train_balanced['deposit']), 2)
+```
+
+We get a balanced training dataset with 50% of customers that subscribed to a term deposit, and another 50% that did not. However, this undersampled but balanced dataset has now 6488 rows.
+
+From our balanced train dataset we set our X_train feature matrix that contains all independent variables by running the following code:
+
+```{python}
+X_train = train_balanced.loc[ : , train_balanced.columns != 'deposit']
+y_train = train_balanced[['deposit']]
+```
+
+# Statistical Learning Methods
+
+In this section we will use supervised learning algorithms in order to predict and estimate an output based on one or more inputs. In our case, we want to predict whether a customer will subscribe to a term deposit based on some input data described before.
+
+## Logistic Regression Model
+
+Logistic regression models predicts the probability of the default class. In our case, this model will predict the probability of a customer subscribing to a term deposit.
+
+We start by training the logistic regression model on the training data.
+
+```{python}
+clf_logistic = LogisticRegression(max_iter = 100000).fit(X_train, np.ravel(y_train))
+```
+
+Based on the trained model, we predict the probability that a customer has to subscribing to a term deposits using validation data.
+
+```{python}
+preds = clf_logistic.predict_proba(X_eval)
+```
+
+The function used in the previous chunk of code ***predict_proba*** provides probabilities for in a range of (0,1) including float numbers. The first column refers to the probability for a customer of not getting a term deposit, and the second column is the probability of subscribing to a term deposit. Now, we create a dataframe of predictions of subscribing to a term deposit, and the true values of people that subscribed to a term deposit:
+
+```{python}
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+pred_comparison = pd.concat([true_df.reset_index(drop = True), preds_df], axis = 1)
+pred_comparison.head(10)
+```
+
+We are interested in checking the classification report of this model. For this, we reassign the probability of accepting a deposit based on the threshold 0.5 which is the middle point between 0 and 1, this is a common approach is many other algorithms. In other words, any estimated probability higher than 0.5 will be assigned as a deposit (1), otherwise as a no-deposit (0).
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > 0.5 else 0)
+```
+
+We can slightly compare how differ the estimations with the real values by the difference in deposits.
+
+Count of estimated deposits by the logistic model:
+
+```{python}
+print(preds_df['prob_accept_deposit'].value_counts())
+```
+
+Count of real deposits in our test set:
+
+```{python}
+print(true_df['deposit'].value_counts())
+```
+
+Choosing the right metric is crucial while evaluating machine learning (ML) models. Various metrics are proposed to evaluate ML models in different applications
+
+By the nature of this case study we are having a classification problem. Therefore we will choose as our metric for model performance ***Recall*** (aka Sensitivity, TPR or True Positive Rate) which is defined as the fraction of samples from a class which are correctly predicted by the model.
+
+The ***Recall*** metric provides us with the answer to a the question "Of all of the positive samples, what proportion did I predict correctly?". It concentrates on the false negatives (FN) and are observations that our algorithm missed. The lower the number of FN is, the better prediction power of our model. In this case study we have 2 classes in our target variable, whether a customer subscribes to a term deposit or not. To this we will analyse the same metric for both classes.
+
+$Recall(Deposit) = \\frac{True Positives}{True Positives + False Negatives}$
+
+$Recall(No-Deposit) = \\frac{True Negatives}{True Negatives+ False Positives}$
+Another important metric that will be also analysed but not taken in consideration when choosing the models is the ***Accuracy***, this is perhaps the simplest metrics one can imagine, and is defined as the number of correct predictions divided by the total number of predictions.
+
+$Accuracy = \\frac{True Positives + True Negatives}{True Positives + False Positives + True Negatives + False Negatives}$
+In order to check the performance of our model it is necessary to check the classification report, by running the following chunk of code:
+
+```{python}
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+We check the accuracy score the model as follows, although this is not our metric of interest. We check this value by observing the above table or by running the following chunk of code:
+
+```{python}
+print(clf_logistic.score(X_eval, y_eval).round(2))
+```
+
+It means that this model correctly predicts 85% of the classes. Finally, we check the confusion matrix which is a table with 4 different combinations of predicted and actual values
+
+![](https://static.packt-cdn.com/products/9781838555078/graphics/C13314_06_05.jpg "Confusion Matrix")
+
+Where:
+
+TN = True Negatives
+
+TP = True Positives
+
+FN = False Negatives
+
+FP = False positives
+
+```{python}
+# Print the confusion matrix
+matrix = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix)
+```
+
+TN = 4696
+
+TP = 611
+
+FN = 71
+
+FP = 800
+
+We are interested to evaluate our model based on the metric ***recall*** aka ***true positive rate*** for subscribing to a term deposits which can visualised in the classification report:
+
+```{python}
+recall_log_reg_1 = round(matrix[1][1]/(matrix[1][1]+matrix[1][0]), 2)
+print(recall_log_reg_1)
+```
+
+We are interested in enhancing this metric. As seen in before, the cut-off point for assigning the categories from the predictions was 0.5. The **cut**-**off point** is the **point** that will indicate whether a customer with certain characteristics will subscribe to a term deposit. If the probability becomes more than the **cut**-**off point**, the customer will be in the class of "Deposit", otherwise will be in the class of "No-deposit".
+
+We can however set an optimal threshold for the classification and improve our recall metric. Before proceding with this we must reset the ***preds_df*** dataframe with the original predicted probabilities, and overwrite those that resulted from the previous arbitrary cut-off
+
+```{python}
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit']).reset_index(drop = True)
+```
+
+First we run a for loop that evaluates the model's performance with different probability cut-offs points, from 0 to 1 by increments of 0.001.
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+Then we calculate the metrics: accuracy sensitivity, and recalls for deposit and no deposit for various probability cutoffs.
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+Now we are able to choose the best cut-off based on the trade-off between deposit recall and no-deposit recall.
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+
+```
+
+The optimal cut-off point is the following:
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+Now we can implement the optimal threshold to the model. Again, we calculate the probability predictions from the model, then we create a dataframe with such predictions.
+
+```{python}
+preds = clf_logistic.predict_proba(X_eval)
+```
+
+```{python}
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+```
+
+Then we reassign the probability of accepting a deposit based on the optimal threshold.
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+We can slightly compare how differ the estimations with the real values by the difference in deposits.
+
+Count of estimated deposits by the logistic model:
+
+```{python}
+print(preds_df['prob_accept_deposit'].value_counts())
+```
+
+Count of real deposits in our test set:
+
+```{python}
+print(true_df['deposit'].value_counts())
+```
+
+For further information it is necessary to check the classification report:
+
+```{python}
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+By setting this new cut-off our recall metric is balanced in both classes and the model improves the correctness of classification in each of the classes.
+
+We check the confusion matrix and compare with the previous one
+
+```{python}
+# Print the confusion matrix
+matrix_2 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_2)
+```
+
+TN = 4778
+
+TP = 593
+
+FN = 89
+
+FP = 718
+
+Now we check the accuracy after assigning the values with the new cut-off point.
+
+```{python}
+accuracy_log_reg_1 = round((matrix_2[0][0]+matrix_2[1][1])/sum(sum(matrix_2)), 3)
+print(accuracy_log_reg_1)
+```
+
+There is a considerable improvement in the accuracy.
+
+We are interested to evaluate our model based on the metric ***recall*** aka ***true positive rate*** for subscribing to a term deposits:
+
+```{python}
+recall_deposit_log_reg_1 = round(matrix_2[1][1]/(matrix_2[1][1]+matrix_2[1][0]), 2)
+print(recall_deposit_log_reg_1)
+```
+
+Now we proceed to calculate the Area Under Curve (AUC) score: stands for "Area under the ROC Curve." The AUC measures the entire two-dimensional area underneath the entire ROC curve and allows comparison of classifiers by comparing the total area underneath the line produced on the ROC curve. AUC ranges in value from 0 to 1. A model whose predictions are 100% wrong has an AUC of 0.0, and one whose predictions are 100% correct has an AUC of 1.0.
+
+The Receiver Operating Characteristic (ROC) Curve: is a two-dimensional graph that depicts trade-offs between benefits (true positives) and costs (false positives). It displays a relation between sensitivity and specificity for a given classifier. The TPR (True Positive Rate) is plot on the Y axis and the FPR (False Positive Rate) on the X axis, where the TPR is the percentage of true positives (to the sum of true positives and false negatives and the FPR is the percentage of false positives (to the sum of false positives and true negatives. A ROC curve examines a single classifier over a set of classification thresholds.
+
+```{python}
+prob_deposit_log_reg_1 = preds[:, 1]
+auc_log_reg_1 = round(roc_auc_score(y_eval, prob_deposit_log_reg_1), 3)
+print(auc_log_reg_1)
+```
+
+## Regularized Logistic Regression Model
+
+In this section we use the same algorithm (logistic regression), however, this time we use regularization techniques. Regularization techniques work by limiting the capacity of models (such as logistic regression) by adding a parameter norm penalty $\\lambda$ to the objective function. As follows:
+
+![](https://miro.medium.com/max/1126/1*7WR8ORB7cHNOJYZRBU5a1Q.png)
+
+Generally we trade off some bias to get lower variance, and lower variance estimators tend to overfit less. However, our Ridge Regression (aka L2-norm penalty) is an assumption about the function we're fitting (we're assuming that it has a small gradient). In general, when we trade off bias for lower variance, it's because we're biasing towards the kind of functions we want to fit.
+
+Our logistic regression model uses the optimisation algorithm Stochastic Average Gradient (SAG), also we set ***max_iter = 10000 (***a large number) to allow convergence of the estimates.
+
+```{python}
+clf_logistic2 = LogisticRegression(solver='sag', max_iter = 10000, penalty = 'l2').fit(X_train, np.ravel(y_train))
+```
+
+As in the above section we make predictions using the evaluation dataset.
+
+```{python}
+preds = clf_logistic2.predict_proba(X_eval)
+```
+
+These predictions are stored in a dataframe instead of an array.
+
+```{python}
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+```
+
+Based on the same approach for selecting the best cut-off point, we implement the same algorithm to find the optimal probability cut-off point in order to balance our recall metric. Again we try to classify the probabilities using different cut-off points from 0 to 1 by increments of 0.001
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+Then we calculate the metrics: accuracy sensitivity, and recalls for deposit and no deposit for various probability cutoffs.
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+Now we are able to choose the best cut-off based on the trade-off between deposit recall and no-deposit recall.
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+
+```
+
+The optimal cut-off point is the following:
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+Then we reassign the probability of accepting a deposit based on the optimal threshold.
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+We can slightly compare how differ the estimations with the real values by the difference in deposits.
+
+Count of estimated deposits by the logistic model:
+
+```{python}
+print(preds_df['prob_accept_deposit'].value_counts())
+```
+
+Count of real deposits in our test set:
+
+```{python}
+print(true_df['deposit'].value_counts())
+```
+
+For further information it is necessary to check the classification report:
+
+```{python}
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+We can see now a more balanced recall metric, however the values are lower than the previous one. We check the accuracy score the model as follows:
+
+Finally, we check the confusion matrix
+
+```{python}
+# Print the confusion matrix
+matrix_3 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_3)
+```
+
+Now we check the accuracy of the model after assigning the optimal probability cut-off point:
+
+```{python}
+accuracy_log_reg_2 = round((matrix_3[0][0]+matrix_3[1][1])/sum(sum(matrix_3)), 3)
+print(accuracy_log_reg_2)
+```
+
+The accuracy of this model is lower than the previous one.
+
+We are interested in evaluating our model based on the metric ***recall*** aka ***true positive rate*** for subscribing to a term deposits:
+
+```{python}
+recall_deposit_log_reg_2 = round(matrix_3[1][1]/(matrix_3[1][1]+matrix_3[1][0]), 3)
+print(recall_deposit_log_reg_2)
+```
+
+We can see a considerable improvement of 1% difference
+
+```{python}
+#AUC
+prob_deposit_log_reg_2 = preds[:, 1]
+auc_log_reg_2 = round(roc_auc_score(y_eval, prob_deposit_log_reg_2), 3)
+print(auc_log_reg_2)
+```
+
+So far our first model yields better returns in terms of accuracy, recall and AUC. This model however, since it is penalised, the estimates have been affected. Therefore we can assume that the first model has less risk of overfitting.
+
+<https://www.kaggle.com/janiobachmann/bank-marketing-campaign-opening-a-term-deposit/comments>
+
+## Reduced Logistic Regression Model
+
+Our dataset has 63 independent variables, and many of these do not impact on the target variable. Many of this variables are called, noisy data. The occurrences of noisy data in data set can significantly impact prediction of any meaningful information. Many empirical studies have shown that noise in data set dramatically led to decreased classification accuracy and poor prediction results [(Gupta, S. and Gupta, A., 2019)](https://www.sciencedirect.com/science/article/pii/S1877050919318575#:~:text=The%20occurrences%20of%20noisy%20data,accuracy%20and%20poor%20prediction%20results.)
+
+In order to eliminate the noisy data in our training dataset, we will use the Recursive Feature Elimination (RFE) method which is a feature selection approach. It works by recursively removing attributes and building a model on those attributes that remain. It uses the model accuracy to identify which attributes (and combination of attributes) contribute the most to predicting the target attribute.
+
+Our goal is not reduce our data to 1/3. Up to 20 variables.
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+logreg = LogisticRegression(max_iter = 10000)
+rfe = RFE(logreg, 20)
+rfe = rfe.fit(X_train, y_train)
+```
+
+```{python}
+print(list(zip(X_train.columns, rfe.support_, rfe.ranking_)))
+```
+
+The variables having showing True are the ones we are interested in. Now we select the variables we are interested in by running the following chunk of code:
+
+```{python}
+col = X_train.columns[rfe.support_]
+X_train_reduced = X_train[col]
+X_eval_reduced = X_eval[col]
+```
+
+Now we can train our model with our training data with 19 variables.
+
+```{python}
+clf_logistic3 = LogisticRegression(max_iter = 100000).fit(X_train_reduced, np.ravel(y_train))
+```
+
+As we the model 1, we will make predictions and look for the optimal cut-off point for classification.
+
+```{python}
+preds = clf_logistic3.predict_proba(X_eval_reduced)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+```
+
+We try to classify the probabilities using different cut-off points from 0 to 1 by increments of 0.001
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+We create as many confusion matrices as cut-off and calculate the accuracy and recalls for each confusion matrix cut-off.
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+```
+
+With this information we are able to choose the best cut-off point:
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+We can proceed to classify our model with the best cut-off point:
+
+```{python}
+preds = clf_logistic3.predict_proba(X_eval_reduced)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+```
+
+We implement the cut-off point in the discriminatory process
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+After that, we can see the results from the classification report:
+
+```{python}
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+We analyse the confusion matrix of this model:
+
+```{python}
+matrix_4 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_4)
+```
+
+We calculate the accuracy of the model:
+
+```{python}
+accuracy_log_reg_3 = round((matrix_4[0][0]+matrix_4[1][1])/sum(sum(matrix_4)), 3)
+print(accuracy_log_reg_3)
+```
+
+Now we proceed to calculate the recall for deposits
+
+```{python}
+recall_deposit_log_reg_3 = round(matrix_4[1][1]/(matrix_4[1][1]+matrix_4[1][0]), 2)
+print(recall_deposit_log_reg_3)
+```
+
+Finally, we calculate the AUC for this model:
+
+```{python}
+prob_deposit_log_reg_3 = preds[:, 1]
+auc_log_reg_3 = round(roc_auc_score(y_eval, prob_deposit_log_reg_3), 3)
+print(auc_log_reg_3)
+```
+
+Logistic regression models' results
+
+```{python}
+data = {'Model': ['Logistic Regression Model 1', 'Regularized Logistic Regression Model', 'Reduced Logistic Regression Model'], 
+        'Accuracy': [accuracy_log_reg_1, accuracy_log_reg_2, accuracy_log_reg_3],
+        'Recall': [recall_deposit_log_reg_1, recall_deposit_log_reg_2, recall_deposit_log_reg_3],
+        'AUC': [auc_log_reg_1, auc_log_reg_2, auc_log_reg_3]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison)
+```
+
+## Gradient Boosting Trees Model
+
+Train a model
+
+```{python }
+clf_gbt = xgb.XGBClassifier(use_label_encoder=False).fit(X_train, np.ravel(y_train))
+```
+
+Based on the trained model, we predict the probability that a customer has to subscribing to a term deposits using validation data.
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+preds = clf_gbt.predict_proba(X_eval)
+```
+
+```{python}
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+pred_comparison = pd.concat([true_df.reset_index(drop = True), preds_df], axis = 1)
+pred_comparison.head(10)
+```
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+```
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+After that, we can see the results from the classification report:
+
+```{python}
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+We analyse the confusion matrix of this model:
+
+```{python}
+matrix_5 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_5)
+```
+
+We calculate the accuracy of the model:
+
+```{python}
+accuracy_XGB_1 = round((matrix_5[0][0]+matrix_5[1][1])/sum(sum(matrix_5)), 3)
+print(accuracy_XGB_1)
+```
+
+Now we proceed to calculate the recall for deposits
+
+```{python}
+recall_XGB_1 = round(matrix_5[1][1]/(matrix_5[1][1]+matrix_5[1][0]), 2)
+print(recall_XGB_1)
+```
+
+Finally, we calculate the AUC for this model:
+
+```{python}
+prob_deposit_xgb_1 = preds[:, 1]
+auc_XGB_1 = round(roc_auc_score(y_eval, prob_deposit_xgb_1), 3)
+print(auc_XGB_1)
+```
+
+## Reduced Gradient Boosting Trees Model
+
+Create and train the model on the training data with 63 features
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+clf_gbt2 = xgb.XGBClassifier(use_label_encoder=False).fit(X_train,np.ravel(y_train))
+```
+
+Print the column importances from the model
+
+```{python}
+var_importance = clf_gbt2.get_booster().get_score(importance_type = 'weight')
+var_importance_df = pd.DataFrame(var_importance, index = [1])
+print(var_importance)
+```
+
+Visualisation of best variables
+
+```{r message = FALSE, warning = FALSE, out.height = "170%"}
+var_importance <- py$var_importance_df
+var_importance <- as.data.frame(t(var_importance))
+names(var_importance)[1] <- "importance"
+var_importance <- tibble::rownames_to_column(var_importance, "variables")
+# make importances relative to max importance
+var_importance <- var_importance[order(-var_importance$importance),]
+var_importance$importance <- 100*var_importance$importance/max(var_importance$importance)
+
+
+fig <- plotly::plot_ly( data = var_importance,
+  x = ~importance,
+  y = ~reorder(variables, importance),
+  name = "Variable Importance",
+  type = "bar", 
+  orientation = 'h') %>% 
+    plotly::layout(
+        barmode = "stack",
+        hovermode = "compare",
+        yaxis = list(title = "Variable"),
+        xaxis = list(title = "Variable Importance")
+        )
+
+fig
+```
+
+Filter the X_train dataset with best variables. We set to only filter the variables that have an importance higher or equal than 10%
+
+```{python}
+var_importance_df = r.var_importance
+col_names = var_importance_df.variables[var_importance_df["importance"] >= 10]
+
+X_train_reduced = X_train[col_names]
+X_eval_reduced = X_eval[col_names]
+```
+
+Create and train the model on the training data
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+clf_gbt2 = xgb.XGBClassifier(use_label_encoder=False).fit(X_train_reduced,np.ravel(y_train))
+```
+
+OIptimal CUT OFF SEARCH
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+preds = clf_gbt2.predict_proba(X_eval_reduced)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit']).reset_index(drop = True)
+true_df = y_eval
+```
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+```
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+Predict with a model
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+preds = clf_gbt2.predict_proba(X_eval_reduced)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+```
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+```{python}
+matrix_6 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_6)
+```
+
+```{python}
+accuracy_XGB_2 = round((matrix_6[0][0]+matrix_6[1][1])/sum(sum(matrix_6)), 3)
+print(accuracy_XGB_2)
+```
+
+```{python}
+recall_XGB_2 = round(matrix_6[1][1]/(matrix_6[1][1]+matrix_6[1][0]), 2)
+print(recall_XGB_2)
+```
+
+```{python}
+prob_deposit_xgb_2 = preds[:, 1]
+auc_XGB_2 = round(roc_auc_score(y_eval, prob_deposit_xgb_2), 3)
+print(auc_XGB_2)
+```
+
+## Cross Validated Gradient Boosting Trees Model
+
+Create a gradient boosted tree model using two hyperparameters
+
+```{python}
+clf_gbt3 = xgb.XGBClassifier(learning_rate = 0.1, max_depth = 7)
+```
+
+Calculate the cross validation scores for 10 folds
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+cv_scores = cross_val_score(clf_gbt3, X_train, np.ravel(y_train), cv = 10)
+print(cv_scores)
+```
+
+Print the average accuracy and standard deviation of the scores
+
+```{python}
+print("Average accuracy: %0.2f (+/- %0.2f)" % (cv_scores.mean(),
+                                              cv_scores.std() * 2))
+```
+
+OIptimal CUT OFF SEARCH
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+preds = cross_val_predict(clf_gbt3, X_eval, np.ravel(y_eval), cv=10, method = 'predict_proba')
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit']).reset_index(drop = True)
+true_df = y_eval
+```
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+```
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+Predict with a model
+
+```{python message = FALSE, warning = FALSE, results = 'hide'}
+preds = cross_val_predict(clf_gbt3, X_eval, np.ravel(y_eval), cv=10, method = 'predict_proba')
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit']).reset_index(drop = True)
+true_df = y_eval
+```
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(true_df, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+```{python}
+matrix_7 = confusion_matrix(true_df,preds_df['prob_accept_deposit'])
+print(matrix_7)
+```
+
+```{python}
+accuracy_XGB_3 = round((matrix_7[0][0]+matrix_7[1][1])/sum(sum(matrix_7)), 3)
+print(accuracy_XGB_3)
+```
+
+```{python}
+recall_XGB_3 = round(matrix_7[1][1]/(matrix_7[1][1]+matrix_7[1][0]), 2)
+print(recall_XGB_3)
+```
+
+```{python}
+prob_deposit_xgb_3 = preds[:, 1]
+auc_XGB_3 = round(roc_auc_score(true_df, prob_deposit_xgb_3), 3)
+print(auc_XGB_3)
+```
+
+Gradient Boosting Trees models' results:
+
+```{python}
+data = {'Model': ['Gradient Boosting Trees Model 1', 'Reduced Gradient Boosting Trees Model', 'Cross Validated Gradient Boosting Trees Model'], 
+        'Accuracy': [accuracy_XGB_1, accuracy_XGB_2, accuracy_XGB_3],
+        'Recall': [recall_XGB_1, recall_XGB_2, recall_XGB_3],
+        'AUC': [auc_XGB_1, auc_XGB_2, auc_XGB_3]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison)
+```
+
+## Random Forest
+
+Train a model
+
+```{python}
+random_forest = RandomForestClassifier(n_estimators=128,min_samples_split=189,min_samples_leaf=7).fit(X_train, np.ravel(y_train))
+```
+
+Predict with a model
+
+```{python}
+preds = random_forest.predict_proba(X_eval)
+```
+
+Create dataframes with predictions
+
+```{python}
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+pred_comparison = pd.concat([true_df.reset_index(drop = True), preds_df], axis = 1)
+pred_comparison.head(10)
+```
+
+optimal cut-off search
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+```
+
+```{python}
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+```
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+Predict with a model
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+```{python}
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+```
+
+```{python}
+matrix_8 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_8)
+```
+
+```{python}
+accuracy_random_forest = round((matrix_8[0][0]+matrix_8[1][1])/sum(sum(matrix_8)), 3)
+print(accuracy_random_forest)
+```
+
+```{python}
+recall_random_forest = round(matrix_8[1][1]/(matrix_8[1][1]+matrix_8[1][0]), 2)
+print(recall_random_forest)
+```
+
+```{python}
+prob_deposit_random_forest = preds[:, 1]
+auc_random_forest = round(roc_auc_score(y_eval, prob_deposit_random_forest), 3)
+print(auc_random_forest)
+```
+
+# Model Comparison
+
+## Logistic Regression Models
+
+```{python}
+data = {'Model': ['Logistic Regression Model 1', 'Regularized Logistic Regression Model', 'Reduced Logistic Regression Model'], 
+        'Accuracy': [accuracy_log_reg_1, accuracy_log_reg_2, accuracy_log_reg_3],
+        'Recall': [recall_deposit_log_reg_1, recall_deposit_log_reg_2, recall_deposit_log_reg_3],
+        'AUC': [auc_log_reg_1, auc_log_reg_2, auc_log_reg_3]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison)
+```
+
+```{python}
+# ROC chart components
+fallout_lr_1, sensitivity_lr_1, thresholds_lr_1 = roc_curve(y_eval, prob_deposit_log_reg_1)
+fallout_lr_2, sensitivity_lr_2, thresholds_lr_2 = roc_curve(y_eval, prob_deposit_log_reg_2)
+fallout_lr_3, sensitivity_lr_3, thresholds_lr_3 = roc_curve(y_eval, prob_deposit_log_reg_3)
+
+
+# ROC Chart with both
+plt.plot(fallout_lr_1, sensitivity_lr_1, color = 'blue', label='%s' % 'Logistic Regression')
+plt.plot(fallout_lr_2, sensitivity_lr_2, color = 'red', label='%s' % 'Regularized Logistic Regression Model')
+plt.plot(fallout_lr_3, sensitivity_lr_3, color = 'green', label='%s' % 'Reduced Logistic Regression Model')
+
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for all LR models on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+```
+
+## XGBoost Models
+
+```{python}
+data = {'Model': ['Gradient Boosting Trees Model 1', 'Reduced Gradient Boosting Trees Model', 'Cross Validated Gradient Boosting Trees Model'], 
+        'Accuracy': [accuracy_XGB_1, accuracy_XGB_2, accuracy_XGB_3],
+        'Recall': [recall_XGB_1, recall_XGB_2, recall_XGB_3],
+        'AUC': [auc_XGB_1, auc_XGB_2, auc_XGB_3]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison)
+```
+
+```{python}
+fallout_xgb_1, sensitivity_xgb_1, thresholds_xgb_1 = roc_curve(y_eval, prob_deposit_xgb_1)
+fallout_xgb_2, sensitivity_xgb_2, thresholds_xgb_2 = roc_curve(y_eval, prob_deposit_xgb_2)
+fallout_xgb_3, sensitivity_xgb_3, thresholds_xgb_3 = roc_curve(y_eval, prob_deposit_xgb_3)
+
+
+# ROC Chart with both
+plt.plot(fallout_xgb_1, sensitivity_xgb_1, color = 'blue', label='%s' % 'XGBoost Model')
+plt.plot(fallout_xgb_2, sensitivity_xgb_2, color = 'red', label='%s' % 'Reduced XGBoost Model')
+plt.plot(fallout_xgb_3, sensitivity_xgb_3, color = 'green', label='%s' % 'Cross Validated XGBoost Model')
+
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for all XGB models on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+```
+
+## Random Forest
+
+```{python}
+data = {'Model': ['Random Forest'], 
+        'Accuracy': [accuracy_random_forest],
+        'Recall': [recall_random_forest],
+        'AUC': [auc_random_forest]
+        } 
+random_forest_results = pd.DataFrame(data) 
+print(random_forest_results)
+```
+
+```{python}
+fallout_random_forest, sensitivity_random_forest, thresholds_random_forest = roc_curve(y_eval, prob_deposit_random_forest)
+
+# ROC Chart with both
+plt.plot(fallout_random_forest, sensitivity_random_forest, color = 'blue', label='%s' % 'Random Forest Model')
+
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for Random Forest Model on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+```
+
+## All models
+
+```{python}
+data = {'Model': ['Logistic Regression Model 1', 
+                  'Regularized Logistic Regression Model', 
+                  'Reduced Logistic Regression Model', 
+                  'Gradient Boosting Trees Model 1', 
+                  'Reduced Gradient Boosting Trees Model', 
+                  'Cross Validated Gradient Boosting Trees Model',
+                  'Random Forest'], 
+        'Accuracy': [accuracy_log_reg_1, 
+                     accuracy_log_reg_2, 
+                     accuracy_log_reg_3, 
+                     accuracy_XGB_1, 
+                     accuracy_XGB_2, 
+                     accuracy_XGB_3,
+                     accuracy_random_forest],
+        'Recall': [recall_deposit_log_reg_1, 
+                   recall_deposit_log_reg_2, 
+                   recall_deposit_log_reg_3, 
+                   recall_XGB_1, 
+                   recall_XGB_2, 
+                   recall_XGB_3,
+                   recall_random_forest],
+        'AUC': [auc_log_reg_1, 
+                auc_log_reg_2, 
+                auc_log_reg_3, 
+                auc_XGB_1, 
+                auc_XGB_2, 
+                auc_XGB_3,
+                auc_random_forest]
+        } 
+
+
+comparison = pd.DataFrame(data) 
+print(comparison.sort_values(["Accuracy", "Recall", "AUC"], ascending = False))
+```
+
+```{python}
+# ROC Chart with both
+plt.plot(fallout_lr_1, sensitivity_lr_1, color = 'blue', label='%s' % 'Logistic Regression')
+plt.plot(fallout_lr_2, sensitivity_lr_2, color = 'red', label='%s' % 'Regularized Logistic Regression Model')
+plt.plot(fallout_lr_3, sensitivity_lr_3, color = 'green', label='%s' % 'Reduced Logistic Regression Model')
+plt.plot(fallout_xgb_1, sensitivity_xgb_1, color = 'yellow', label='%s' % 'XGBoost Model')
+plt.plot(fallout_xgb_2, sensitivity_xgb_2, color = 'blueviolet', label='%s' % 'Reduced XGBoost Model')
+plt.plot(fallout_xgb_3, sensitivity_xgb_3, color = 'orange', label='%s' % 'Cross Validated XGBoost Model')
+plt.plot(fallout_random_forest, sensitivity_random_forest, color = 'orchid', label='%s' % 'Random Forest Model')
+
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for Random Forest Model on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+```
