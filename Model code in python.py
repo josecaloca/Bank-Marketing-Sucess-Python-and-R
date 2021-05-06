@@ -1,16 +1,21 @@
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
 import sweetviz as sv
-
+# Preprocessing
+from sklearn.preprocessing import LabelEncoder
+# Modeling
 import xgboost as xgb
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-
+# Model selection
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
 from sklearn.model_selection import cross_val_predict, cross_val_score
-
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedKFold
+# Model evaluation
 from sklearn.metrics import confusion_matrix, classification_report, precision_recall_fscore_support, roc_curve, roc_auc_score, accuracy_score, recall_score, precision_score
 
 from sklearn import metrics
@@ -436,8 +441,29 @@ print(auc_XGB_2)
 # MODEL 6
 ############################
 
+model = XGBClassifier()
+n_estimators = [100, 200, 300, 400, 500]
+learning_rate = [0.0001, 0.001, 0.01, 0.1]
+param_grid = dict(learning_rate=learning_rate, n_estimators=n_estimators)
+kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=7)
+grid_search = GridSearchCV(model, param_grid, scoring="recall", cv=kfold)
+grid_result = grid_search.fit(X_train, y_train)
 
-clf_gbt3 = xgb.XGBClassifier(learning_rate = 0.1, max_depth = 7)
+means = grid_result.cv_results_['mean_test_score']
+stds = grid_result.cv_results_['std_test_score']
+params = grid_result.cv_results_['params']
+for mean, stdev, param in zip(means, stds, params):
+	print("%f (%f) with: %r" % (mean, stdev, param))
+	
+best_learning_rate = grid_result.best_params_['learning_rate']
+best_n_estimators = grid_result.best_params_['n_estimators']
+print("Best recall: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+
+
+
+
+
+clf_gbt3 = xgb.XGBClassifier(learning_rate = best_learning_rate, n_estimators = best_n_estimators, max_depth = 7)
 
 cv_scores = cross_val_score(clf_gbt3, X_train, np.ravel(y_train), cv = 10)
 print(cv_scores)
@@ -506,7 +532,7 @@ print(comparison)
 ############################
 
 
-random_forest = RandomForestClassifier(n_estimators=128,min_samples_split=189,min_samples_leaf=7).fit(X_train, np.ravel(y_train))
+random_forest = RandomForestClassifier().fit(X_train, np.ravel(y_train))
 
 preds = random_forest.predict_proba(X_eval)
 preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
@@ -556,6 +582,30 @@ print(recall_random_forest)
 prob_deposit_random_forest = preds[:, 1]
 auc_random_forest = round(roc_auc_score(y_eval, prob_deposit_random_forest), 3)
 print(auc_random_forest)
+
+############################
+# MODEL 7
+############################
+
+model = RandomForestClassifier()
+n_estimators = [100, 200, 300, 400, 500]
+min_samples_split = list(range(0,200,10))
+param_grid = dict(min_samples_split=min_samples_split, n_estimators=n_estimators)
+kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=7)
+grid_search = GridSearchCV(model, param_grid, scoring="recall", cv=kfold)
+grid_result = grid_search.fit(X_train, y_train)
+
+means = grid_result.cv_results_['mean_test_score']
+stds = grid_result.cv_results_['std_test_score']
+params = grid_result.cv_results_['params']
+for mean, stdev, param in zip(means, stds, params):
+	print("%f (%f) with: %r" % (mean, stdev, param))
+	
+
+
+best_min_samples_split = grid_result.best_params_['min_samples_split']
+best_n_estimators = grid_result.best_params_['n_estimators']
+print("Best recall: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
 
 
 data = {'Model': ['Logistic Regression Model 1', 
