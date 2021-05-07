@@ -81,7 +81,7 @@ from sklearn.metrics import confusion_matrix
 
 ### Load dataset
 
-The dataset used for this project can be found by clicking [here](https://archive.ics.uci.edu/ml/datasets/Bank+Marketing). More specifically the dataset that we will load is the following: *bank-additional-full.csv*.
+The dataset used for this project can be found by clicking [***here***](https://archive.ics.uci.edu/ml/datasets/Bank+Marketing)*.* More specifically the dataset that we will load is the following: *bank-additional-full.csv*.
 
 For loading the file we will call the *read_csv* function from pandas. It is it important to mention that there must be a folder called **dataset** in your main project folder that contains the aforementioned dataset. Or preferably it can be downloaded directly from the GitHub repository.
 
@@ -99,22 +99,22 @@ dataset.rename(columns = {"y" : "deposit"}, inplace = True)
 
 The following chart shows a big picture of the dataset:
 
-```{r, include=FALSE}
+```{r echo=FALSE}
 dataset <- py$dataset
 plot_intro(dataset)
 ```
 
 This dataset has 100% of complete rows, and has no missing values, nor missing columns. Hence, no imputation techniques are needed in any of the variables. Almost the half of the columns are numeric. In overall this is not a heavy dataset since it only occupies 6.6 Mb of memory.
 
-The dataset has 21 columns and 41188 rows. The variables have the following attributes: $\~$
+The dataset has 21 columns and 41188 rows. The variables have the following attributes:
+
+$~$
 
 #### Bank client data:
 
-$\~$
+$~$
 
-1.  
-
-    -   age (numeric)
+1\. - age (numeric)
 
 2\. - job : type of job (categorical: 'admin.','blue-collar','entrepreneur','housemaid','management','retired','self-employed','services','student','technician','unemployed','unknown')
 
@@ -126,11 +126,13 @@ $\~$
 
 6\. - housing: has housing loan? (categorical: 'no','yes','unknown')
 
-7\. - loan: has personal loan? (categorical: 'no','yes','unknown') $\~$
+7\. - loan: has personal loan? (categorical: 'no','yes','unknown')
+
+$~$
 
 #### Data related with the last contact of the current campaign:
 
-$\~$
+$~$
 
 8\. - contact: contact communication type (categorical: 'cellular','telephone')
 
@@ -138,11 +140,13 @@ $\~$
 
 10\. - day_of_week: last contact day of the week (categorical: 'mon','tue','wed','thu','fri')
 
-11\. - duration: last contact duration, in seconds (numeric). Important note: this attribute highly affects the output target (e.g., if duration=0 then y='no'). Yet, the duration is not known before a call is performed. Also, after the end of the call y is obviously known. Thus, this input should only be included for benchmark purposes and should be discarded if the intention is to have a realistic predictive model. $\~$
+11\. - duration: last contact duration, in seconds (numeric). Important note: this attribute highly affects the output target (e.g., if duration=0 then y='no'). Yet, the duration is not known before a call is performed. Also, after the end of the call y is obviously known. Thus, this input should only be included for benchmark purposes and should be discarded if the intention is to have a realistic predictive model.
+
+$~$
 
 #### Other attributes:
 
-$\~$
+$~$
 
 12\. - campaign: number of contacts performed during this campaign and for this client (numeric, includes last contact)
 
@@ -150,11 +154,13 @@ $\~$
 
 14\. - previous: number of contacts performed before this campaign and for this client (numeric)
 
-15\. - poutcome: outcome of the previous marketing campaign (categorical: 'failure','nonexistent','success') $\~$
+15\. - poutcome: outcome of the previous marketing campaign (categorical: 'failure','nonexistent','success')
+
+$~$
 
 #### Social and economic context attributes
 
-$\~$
+$~$
 
 16\. - emp.var.rate: employment variation rate - quarterly indicator (numeric)
 
@@ -164,11 +170,13 @@ $\~$
 
 19\. - euribor3m: euribor 3 month rate - daily indicator (numeric)
 
-20\. - nr.employed: number of employees - quarterly indicator (numeric) $\~$
+20\. - nr.employed: number of employees - quarterly indicator (numeric)
+
+$~$
 
 #### Output variable (desired target):
 
-$\~$
+$~$
 
 21\. - deposit - has the client subscribed a term deposit? (binary: 'yes','no')
 
@@ -190,7 +198,7 @@ The exploratory data analysis (EDA) or descriptive statistics is a preliminary a
 
 The objective of this analysis is to explore, describe, summarize and visualize the nature of the data collected in the random variables of the project or research of interest, through the application of simple data summary techniques and graphic methods without assuming assumptions for their interpretation.
 
-For the creation of the EDA graphs we will be using the Python library **sweetviz**. Sweetviz is a library that generates beautiful, high-density visualizations to kickstart EDA with just two lines of code. Output is a fully self-contained HTML application. The output is saved a HTML file in the project folder, and will be loaded to Rmarkdown to render by calling the function **includeHTML** from the **htmltools** package in R.
+For the creation of the EDA graphs we will be using the Python library **sweetviz**. Sweetviz is a library that generates nice-looking, high-density visualizations to kickstart EDA with just two lines of code. Output is a fully self-contained HTML application. The output is saved a HTML file in the project folder, and will be loaded to Rmarkdown to render by calling the function **includeHTML** from the **htmltools** package in R.
 
 First, we look at some main summary statistics of our dataset and get a picture of the distribution of each variables.
 
@@ -234,179 +242,179 @@ Second, we load the HTML file in the Rmarkdown notebook interface. We will go fe
 htmltools::includeHTML("Exploratory_Data_Analysis.html")
 ```
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
-$\~$
+$~$
 
 ## EDA analysis:
 
@@ -577,7 +585,7 @@ X_train = train_balanced.loc[ : , train_balanced.columns != 'deposit']
 y_train = train_balanced[['deposit']]
 ```
 
-# Statistical Learning Methods
+# Model Building and Evaluation
 
 In this section we will use supervised learning algorithms in order to predict and estimate an output based on one or more inputs. In our case, we want to predict whether a customer will subscribe to a term deposit based on some input data described before.
 
@@ -1142,7 +1150,7 @@ Gradient boosting involves three elements:
 
 ![](https://www.researchgate.net/profile/Maria-Peraita-Adrados/publication/326379229/figure/fig5/AS:647978477948928@1531501516288/A-simple-example-of-visualizing-gradient-boosting.png)
 
-Gradient boosting is a greedy algorithm and can overfit a training dataset quickly. For this we will use some hyperparameter tuning to avoid the overfitting problem.
+Gradient boosting is a greedy algorithm and can overfit a training dataset quickly. For this we will use some hyperparameter tuning to avoid the overfitting problem[@hastie2009a].
 
 First we will train a gradient boosting model:
 
@@ -1578,7 +1586,7 @@ Lastly, we calculate the AUC.
 
 ```{python}
 prob_deposit_xgb_3 = preds[:, 1]
-auc_XGB_3 = round(roc_auc_score(true_df, prob_deposit_xgb_3), 3)
+auc_XGB_3 = round(roc_auc_score(y_eval, prob_deposit_xgb_3), 3)
 print(auc_XGB_3)
 ```
 
@@ -1838,6 +1846,8 @@ print(auc_random_forest_2)
 
 # Model Comparison
 
+In this section we compare the performance of the models based on the selected metric ***Recall.*** Our goal is to choose the model with highest ***Recall*** so our model correctly classifies the customers that will subscribe to a term deposit and those that will not
+
 ## Logistic Regression Models
 
 In this section we will analyse the performance of the 3 logistic regression models used:
@@ -1858,11 +1868,11 @@ comparison = pd.DataFrame(data)
 print(comparison.sort_values(["Recall", "AUC"], ascending = False))
 ```
 
-From the previous table we can infer that the model that performed the best is: Logistic Regression Model Simple.
+From the previous table we can infer that the model that performed the best is: ***Logistic Regression Model Simple.***
 
-In terms of our selected metrics: Recall for model performance and AUC for model selection. This model obtained the best score.
+In terms of our selected metric: Recall. This model obtained the best score.
 
-We can compare graphically each of the ROC curves of the logistic regression models.
+We can compare graphically each of the ROC curves on the validation dataset of the logistic regression models.
 
 ```{python echo = FALSE}
 # ROC chart components
@@ -1907,7 +1917,7 @@ comparison = pd.DataFrame(data)
 print(comparison.sort_values(["Recall", "AUC"], ascending = False))
 ```
 
-The best model in terms of recall and AUC is the Gradient Boosting Trees Model 1. We can compare all the ROC curves:
+The best model in terms of higher recall is the ***Gradient Boosting Trees Model 1***. We can compare all the ROC curves on the validation dataset:
 
 ```{python echo = FALSE}
 fallout_xgb_1, sensitivity_xgb_1, thresholds_xgb_1 = roc_curve(y_eval, prob_deposit_xgb_1)
@@ -1950,7 +1960,7 @@ random_forest_results = pd.DataFrame(data)
 print(random_forest_results)
 ```
 
-The best model is the random forest simple which was tuned with the default features of the algorithm. We can visualise the ROC curves as follows:
+The best model is the ***random forest simple*** which was tuned with the default features of the algorithm. We can visualise the ROC curves as follows:
 
 ```{python echo = FALSE}
 fallout_random_forest, sensitivity_random_forest, thresholds_random_forest = roc_curve(y_eval, prob_deposit_random_forest)
@@ -1971,9 +1981,9 @@ plt.show()
 plt.close()
 ```
 
-## All models
+# Model Selection
 
-The following table shows the performance of all models. The table is sorted descending by terms of AUC and Recall. Te models being compared are the following:
+The following table shows the performance of all models. The table is sorted descending by terms of ***Recall*** and ***AUC***. It is important to note that the value of the Area Under the Curve (AUC) was calculated on the validation set and it will be presented as a reference. That being said, the selection of the model will be based only on the selected metric criteria: ***Recall.*** The models being compared are the following:
 
 -   Logistic Regression Model 1
 
@@ -2029,7 +2039,7 @@ comparison = pd.DataFrame(data)
 print(comparison.sort_values(["Recall", "AUC"], ascending = False))
 ```
 
-The model with the best performance was the Gradient Boosting Trees Model.
+![](https://media.istockphoto.com/vectors/trophy-icon-on-transparent-background-vector-id1282548092?k=6&m=1282548092&s=170667a&w=0&h=BT0F-W32qG-5kXmS05iYZCNbW59HX2ZNqaay6NboYSs=){width="47"}***The model with the best performance was the Gradient Boosting Trees Model.***![](https://media.istockphoto.com/vectors/trophy-icon-on-transparent-background-vector-id1282548092?k=6&m=1282548092&s=170667a&w=0&h=BT0F-W32qG-5kXmS05iYZCNbW59HX2ZNqaay6NboYSs=){width="47"}
 
 Since the recall is balanced for both labels (deposits and no-deposit), this model predicts 89% of the clients that will subscribe to a term deposit, and identify 89% of clients that will not subscribe to a term deposit.
 
@@ -2057,12 +2067,207 @@ plt.show()
 plt.close()
 ```
 
+# Model Assesment
+
+As mentioned in the previous section, the model with the best performance in terms of the ***Recall*** metric was the ***Gradient Boosting Trees Model.*** In this section we will make predictions on the test and train set and calculate the recall, accuracy and ROC curve and compare the results.
+
+In this section we intend to investigate whether our chosen model is overfitted. As previously stated, the Gradient Boosting Models tend to overfit quickly. Overfitting is a situation where any given model is performing too well on the training data but the performance drops significantly over the test set.
+
+![](https://media.geeksforgeeks.org/wp-content/cdn-uploads/20190523171258/overfitting_2.png)
+
+In order to detect overfitting we will calculate the metrics Recall and Accuracy, along with the AUC for each dataset: train, validation and test. Then we will compare how much differ the metrics with respect to the training set.
+
+## Predictions
+
+Since our model was evaluated before in the previous sections in terms of the validation set. Here we will calculate the model performance when exposed to the test and training datasets.
+
+### Test Set:
+
+First we make predictions using the **test set:**
+
+```{python}
+preds = clf_gbt.predict_proba(X_test)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_test
+```
+
+We look for the optimal cut-off point
+
+```{python}
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+    
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+```
+
+Graphical representation of the best cut-off point:
+
+```{r}
+cutoff_df <- py$cutoff_df
+
+names(cutoff_df)[names(cutoff_df) == "prob"] <- "Probability cut-off"
+names(cutoff_df)[names(cutoff_df) == "accs"] <- "Accuracy"
+names(cutoff_df)[names(cutoff_df) == "def_recalls"] <- "Deposit Recall"
+names(cutoff_df)[names(cutoff_df) == "nondef_recalls"] <- "No-deposit Recall"
+
+cutoff_df <- cutoff_df %>% gather(key = "metric", value = "value", -`Probability cut-off`)
+
+ggplot(cutoff_df, aes(x = `Probability cut-off`, y = value, color = metric)) + 
+    geom_line(aes(linetype = metric)) +
+    ggtitle("Accuracy, Deposit Recall and No-deposit Recall") +
+    scale_fill_discrete(name = "Metrics", labels = c("Accuracy", "Deposit Recall", "No-deposit Recall"))
+```
+
+Calculation of the best cut-off point:
+
+```{python}
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+```
+
+Recode the probabilities as per the best cut-off point:
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+We check the confusion matrix:
+
+```{python}
+matrix_10 = confusion_matrix(y_test,preds_df['prob_accept_deposit'])
+print(matrix_10)
+```
+
+***We calculate the accuracy for the test set.***
+
+```{python}
+accuracy_XGB_1_test = round((matrix_10[0][0]+matrix_10[1][1])/sum(sum(matrix_10)), 3)
+print(accuracy_XGB_1_test)
+```
+
+***Now we proceed to calculate the Recall for the test set.***
+
+```{python}
+recall_XGB_1_test = round(matrix_10[1][1]/(matrix_10[1][1]+matrix_10[1][0]), 2)
+print(recall_XGB_1_test)
+```
+
+***We calculate the AUC for the test set***
+
+```{python}
+prob_deposit_xgb_1_test = preds[:, 1]
+auc_XGB_1_test = round(roc_auc_score(y_test, prob_deposit_xgb_1_test), 3)
+print(auc_XGB_1_test)
+```
+
+### Train set:
+
+First we make predictions using the **train set:**
+
+```{python}
+preds = clf_gbt.predict_proba(X_train)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_train
+```
+
+We recode the probabilities as per the best cut-off point:
+
+```{python}
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+```
+
+We check the confusion matrix:
+
+```{python}
+matrix_11 = confusion_matrix(y_train,preds_df['prob_accept_deposit'])
+print(matrix_11)
+```
+
+***We calculate the accuracy for the train set.***
+
+```{python}
+accuracy_XGB_1_train = round((matrix_11[0][0]+matrix_11[1][1])/sum(sum(matrix_11)), 3)
+print(accuracy_XGB_1_train)
+```
+
+***Now we proceed to calculate the Recall for the train set.***
+
+```{python}
+recall_XGB_1_train = round(matrix_11[1][1]/(matrix_11[1][1]+matrix_11[1][0]), 2)
+print(recall_XGB_1_train)
+```
+
+***We calculate the AUC for the train set***
+
+```{python}
+prob_deposit_xgb_1_train = preds[:, 1]
+auc_XGB_1_train = round(roc_auc_score(y_train, prob_deposit_xgb_1_train), 3)
+print(auc_XGB_1_train)
+```
+
+## Overfitting Assesment
+
+So far we have calculated the ***recall, accuracy and AUC*** when the input data comes from the train, validation and test set. Now we can compare the ROC curves for each of the datasets.
+
+```{python echo = FALSE}
+fallout_xgb_1, sensitivity_xgb_1, thresholds_xgb_1 = roc_curve(y_eval, prob_deposit_xgb_1)
+fallout_xgb_1_test, sensitivity_xgb_1_test, thresholds_xgb_1_test = roc_curve(y_test, prob_deposit_xgb_1_test)
+fallout_xgb_1_train, sensitivity_xgb_1_train, thresholds_xgb_1_train = roc_curve(y_train, prob_deposit_xgb_1_train)
+
+
+# ROC Chart with both
+plt.plot(fallout_xgb_1, sensitivity_xgb_1, color = 'blue', label='%s' % 'ROC validation set')
+plt.plot(fallout_xgb_1_test, sensitivity_xgb_1_test, color = 'red', label='%s' % 'ROC test set')
+plt.plot(fallout_xgb_1_train, sensitivity_xgb_1_train, color = 'black', label='%s' % 'ROC train set')
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for all XGB models on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+```
+
+As expected, the train dataset has a very good result since the model was trained and executed on the same data. However, it severely differs when the input data is unknown (validation and test set).
+
+The difference between the metrics Recall, Accuracy, and AUC in the train, validation, and test set is depicted as follows:
+
+```{python echo = FALSE}
+data = {'Dataset': ['Validation Set', 'Test Set', 'Train set'], 
+        'Accuracy': [accuracy_XGB_1, accuracy_XGB_1_test, accuracy_XGB_1_train],
+        'Recall': [recall_XGB_1, recall_XGB_1_test, recall_XGB_1_train],
+        'AUC': [auc_XGB_1, auc_XGB_1_test, auc_XGB_1_train]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison.sort_values(["AUC"], ascending = False))
+```
+
+We can see that the model performs extremely good on the training set as expected, however, since the predictions change drastically when new input data is presented, and therefore changes the recall and accuracy of the model, we can say that this model is overfitted. Note that a difference in ***Recall*** is between 9 and 10% when exposed to unknown data is a bad indicator for this assessment.
+
+Although this model was chosen among others due to its good performance in the metric recall, unfortunately the model is prone to be easily overfitted, which ended up being the case.
+
 # Conclusions
 
+Our goal was to create a model that best identifies and classifies those customers that will subscribe to a term deposit, and also identify those that will not. For this we built 8 models and out of these models, the one that showed a great performance was the ***Gradient Boosting Tree*** model with no tuning or regularization.
+
+As mentioned before, this model by its nature can quickly overfit and ended up being this the case. Our model reported great results in the training data and when exposed to the test and validation, this model dropped between 9 - 10 % in the value of the metrics. However, the value of the metrics when exposed to the 2 unknown datasets (test and validation) differed around 1%, showing some kind of robustness in the predictions.
+
+Our ***Gradient Boosting Tree model,*** although is overfitted, can predict around 88% of the 2 categories: customers that will subscribe to a term deposit and customers that will not. The error of accuracy when new data is present is around 1%.
+
+As a proposal for improvement of this model, the overfitting problem could be improved by trying different hyperparameters and tunning them accordingly by a grid search. Also, we could think on trying a different sampling technique, for example, oversampling. Also, we could do some dimensionality reduction and try regularisation techniques on all the models. Then we can choose the model that reports the best Recall.
+
 # Bibliography
-
-Gupta, Shivani, and Atul Gupta. 2019. "Dealing with Noise Problem in Machine Learning Data-Sets: A Systematic Review." Procedia Computer Science 161: 466--74. <https://doi.org/10.1016/j.procs.2019.11.146.>
-
-Hastie, Trevor, Robert Tibshirani, and Jerome Friedman. 2009. "The Elements of Statistical Learning". Springer New York. https://doi.org/10.1007/978-0-387-84858-7.
-
-Hastie, Trevor, Saharon Rosset, Ji Zhu, and Hui Zou. 2009. "Multi-Class AdaBoost." Statistics and Its Interface 2 (3): 349--60. https://doi.org/10.4310/sii.2009.v2.n3.a8.
