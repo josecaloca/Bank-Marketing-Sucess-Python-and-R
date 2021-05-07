@@ -441,29 +441,7 @@ print(auc_XGB_2)
 # MODEL 6
 ############################
 
-model = XGBClassifier()
-n_estimators = [100, 200, 300, 400, 500]
-learning_rate = [0.0001, 0.001, 0.01, 0.1]
-param_grid = dict(learning_rate=learning_rate, n_estimators=n_estimators)
-kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=7)
-grid_search = GridSearchCV(model, param_grid, scoring="recall", cv=kfold)
-grid_result = grid_search.fit(X_train, y_train)
-
-means = grid_result.cv_results_['mean_test_score']
-stds = grid_result.cv_results_['std_test_score']
-params = grid_result.cv_results_['params']
-for mean, stdev, param in zip(means, stds, params):
-	print("%f (%f) with: %r" % (mean, stdev, param))
-	
-best_learning_rate = grid_result.best_params_['learning_rate']
-best_n_estimators = grid_result.best_params_['n_estimators']
-print("Best recall: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
-
-
-
-
-
-clf_gbt3 = xgb.XGBClassifier(learning_rate = best_learning_rate, n_estimators = best_n_estimators, max_depth = 7)
+clf_gbt3 = xgb.XGBClassifier(learning_rate = 0.01, max_depth = 7, n_estimators = 300)
 
 cv_scores = cross_val_score(clf_gbt3, X_train, np.ravel(y_train), cv = 10)
 print(cv_scores)
@@ -584,28 +562,84 @@ auc_random_forest = round(roc_auc_score(y_eval, prob_deposit_random_forest), 3)
 print(auc_random_forest)
 
 ############################
-# MODEL 7
+# MODEL 8
 ############################
 
-model = RandomForestClassifier()
-n_estimators = [100, 200, 300, 400, 500]
-min_samples_split = list(range(0,200,10))
-param_grid = dict(min_samples_split=min_samples_split, n_estimators=n_estimators)
-kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=7)
-grid_search = GridSearchCV(model, param_grid, scoring="recall", cv=kfold)
-grid_result = grid_search.fit(X_train, y_train)
+# Potential grid search (Computational power extensive)
 
-means = grid_result.cv_results_['mean_test_score']
-stds = grid_result.cv_results_['std_test_score']
-params = grid_result.cv_results_['params']
-for mean, stdev, param in zip(means, stds, params):
-	print("%f (%f) with: %r" % (mean, stdev, param))
+#model = RandomForestClassifier()
+#n_estimators = [100, 200, 300, 400, 500]
+#min_samples_split = list(range(0,200,10))
+#param_grid = dict(min_samples_split=min_samples_split, n_estimators=n_estimators)
+#fold = StratifiedKFold(n_splits=10, shuffle=True, random_state=7)
+#grid_search = GridSearchCV(model, param_grid, scoring="recall", cv=kfold)
+#grid_result = grid_search.fit(X_train, y_train)
+
+# means = grid_result.cv_results_['mean_test_score']
+# stds = grid_result.cv_results_['std_test_score']
+# params = grid_result.cv_results_['params']
+# for mean, stdev, param in zip(means, stds, params):
+# 	print("%f (%f) with: %r" % (mean, stdev, param))
 	
+# best_min_samples_split = grid_result.best_params_['min_samples_split']
+# best_n_estimators = grid_result.best_params_['n_estimators']
+# print("Best recall: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+
+random_forest_2 = RandomForestClassifier(n_estimators=350,min_samples_split=70,min_samples_leaf=7).fit(X_train, np.ravel(y_train))
+preds = random_forest_2.predict_proba(X_eval)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_eval
+pred_comparison = pd.concat([true_df.reset_index(drop = True), preds_df], axis = 1)
+pred_comparison.head(10)
 
 
-best_min_samples_split = grid_result.best_params_['min_samples_split']
-best_n_estimators = grid_result.best_params_['n_estimators']
-print("Best recall: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+preds_df.head(5)
+
+
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+
+
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+
+target_names = ['No-deposit', 'Deposit']
+print(classification_report(y_eval, preds_df['prob_accept_deposit'], target_names=target_names))
+
+matrix_8 = confusion_matrix(y_eval,preds_df['prob_accept_deposit'])
+print(matrix_8)
+
+accuracy_random_forest = round((matrix_8[0][0]+matrix_8[1][1])/sum(sum(matrix_8)), 3)
+print(accuracy_random_forest)
+
+recall_random_forest = round(matrix_8[1][1]/(matrix_8[1][1]+matrix_8[1][0]), 2)
+print(recall_random_forest)
+
+prob_deposit_random_forest = preds[:, 1]
+auc_random_forest = round(roc_auc_score(y_eval, prob_deposit_random_forest), 3)
+print(auc_random_forest)
+
+
+
+############################
+# MODEL SELECTION
+############################
 
 
 data = {'Model': ['Logistic Regression Model 1', 
@@ -614,29 +648,37 @@ data = {'Model': ['Logistic Regression Model 1',
                   'Gradient Boosting Trees Model 1', 
                   'Reduced Gradient Boosting Trees Model', 
                   'Cross Validated Gradient Boosting Trees Model',
-                  'Random Forest'], 
+                  'Random Forest',
+                  'Tuned Random Forest'], 
         'Accuracy': [accuracy_log_reg_1, 
                      accuracy_log_reg_2, 
                      accuracy_log_reg_3, 
                      accuracy_XGB_1, 
                      accuracy_XGB_2, 
                      accuracy_XGB_3,
-                     accuracy_random_forest],
+                     accuracy_random_forest,
+                     accuracy_random_forest_2],
         'Recall': [recall_deposit_log_reg_1, 
                    recall_deposit_log_reg_2, 
                    recall_deposit_log_reg_3, 
                    recall_XGB_1, 
                    recall_XGB_2, 
                    recall_XGB_3,
-                   recall_random_forest],
+                   recall_random_forest,
+                   recall_random_forest_2],
         'AUC': [auc_log_reg_1, 
                 auc_log_reg_2, 
                 auc_log_reg_3, 
                 auc_XGB_1, 
                 auc_XGB_2, 
                 auc_XGB_3,
-                auc_random_forest]
+                auc_random_forest,
+                auc_random_forest_2]
         } 
+
+
+comparison = pd.DataFrame(data) 
+print(comparison.sort_values(["Recall", "AUC"], ascending = False))
 
 comparison = pd.DataFrame(data) 
 print(comparison)
@@ -705,10 +747,11 @@ plt.close()
 
 # ROC chart components
 fallout_random_forest, sensitivity_random_forest, thresholds_random_forest = roc_curve(y_eval, prob_deposit_random_forest)
+fallout_random_forest_2, sensitivity_random_forest_2, thresholds_random_forest_2 = roc_curve(y_eval, prob_deposit_random_forest_2)
 
 # ROC Chart with both
 plt.plot(fallout_random_forest, sensitivity_random_forest, color = 'blue', label='%s' % 'Random Forest Model')
-
+plt.plot(fallout_random_forest_2, sensitivity_random_forest_2, color = 'red', label='%s' % 'Tuned Random Forest Model')
 
 
 plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
@@ -732,8 +775,7 @@ plt.plot(fallout_xgb_1, sensitivity_xgb_1, color = 'yellow', label='%s' % 'XGBoo
 plt.plot(fallout_xgb_2, sensitivity_xgb_2, color = 'blueviolet', label='%s' % 'Reduced XGBoost Model')
 plt.plot(fallout_xgb_3, sensitivity_xgb_3, color = 'orange', label='%s' % 'Cross Validated XGBoost Model')
 plt.plot(fallout_random_forest, sensitivity_random_forest, color = 'orchid', label='%s' % 'Random Forest Model')
-
-
+plt.plot(fallout_random_forest_2, sensitivity_random_forest_2, color = 'black', label='%s' % 'Random Forest Model')
 
 plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
 plt.title("ROC Chart for Random Forest Model on the Probability of Deposit")
@@ -742,3 +784,125 @@ plt.ylabel('Sensitivity')
 plt.legend()
 plt.show()
 plt.close()
+
+
+################################################
+# MODEL ASSESSMENT
+################################################
+
+
+# test
+
+preds = clf_gbt.predict_proba(X_test)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_test
+numbers  = [float(x)/1000 for x in range(1000)]
+for i in numbers:
+    preds_df[i]= preds_df.prob_accept_deposit.map(lambda x: 1 if x > i else 0)
+    
+cutoff_df = pd.DataFrame( columns = ['prob','accs','def_recalls','nondef_recalls'])
+for i in numbers:
+    cm1 = metrics.confusion_matrix(true_df, preds_df[i])
+    total1=sum(sum(cm1))
+    accs = (cm1[0][0]+cm1[1][1])/total1
+    
+    def_recalls = cm1[1][1]/(cm1[1][1]+cm1[1][0])
+    nondef_recalls = cm1[0][0]/(cm1[0][0]+cm1[0][1])
+    cutoff_df.loc[i] =[ i ,accs,def_recalls,nondef_recalls]
+print(cutoff_df.head(5))
+cutoff_df["diff"] = abs(cutoff_df.def_recalls - cutoff_df.nondef_recalls)
+best_threshold = cutoff_df["prob"].loc[cutoff_df["diff"] == min(cutoff_df["diff"])]
+best_threshold = best_threshold.iloc[0]
+print(best_threshold)
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+matrix_10 = confusion_matrix(y_test,preds_df['prob_accept_deposit'])
+print(matrix_10)
+accuracy_XGB_1_test = round((matrix_10[0][0]+matrix_10[1][1])/sum(sum(matrix_10)), 3)
+print(accuracy_XGB_1_test)
+recall_XGB_1_test = round(matrix_10[1][1]/(matrix_10[1][1]+matrix_10[1][0]), 2)
+print(recall_XGB_1_test)
+prob_deposit_xgb_1_test = preds[:, 1]
+auc_XGB_1_test = round(roc_auc_score(y_test, prob_deposit_xgb_1_test), 3)
+print(auc_XGB_1_test)
+
+# train
+
+preds = clf_gbt.predict_proba(X_train)
+preds_df = pd.DataFrame(preds[:,1], columns = ['prob_accept_deposit'])
+true_df = y_train
+
+preds_df['prob_accept_deposit'] = preds_df['prob_accept_deposit'].apply(lambda x: 1 if x > best_threshold else 0)
+
+matrix_11 = confusion_matrix(y_train,preds_df['prob_accept_deposit'])
+print(matrix_11)
+accuracy_XGB_1_train = round((matrix_11[0][0]+matrix_11[1][1])/sum(sum(matrix_11)), 3)
+print(accuracy_XGB_1_train)
+
+recall_XGB_1_train = round(matrix_11[1][1]/(matrix_11[1][1]+matrix_11[1][0]), 2)
+print(recall_XGB_1_train)
+
+prob_deposit_xgb_1_train = preds[:, 1]
+auc_XGB_1_train = round(roc_auc_score(y_train, prob_deposit_xgb_1_train), 3)
+print(auc_XGB_1_train)
+
+fallout_xgb_1, sensitivity_xgb_1, thresholds_xgb_1 = roc_curve(y_eval, prob_deposit_xgb_1)
+fallout_xgb_1_test, sensitivity_xgb_1_test, thresholds_xgb_1_test = roc_curve(y_test, prob_deposit_xgb_1_test)
+fallout_xgb_1_train, sensitivity_xgb_1_train, thresholds_xgb_1_train = roc_curve(y_train, prob_deposit_xgb_1_train)
+
+
+# ROC Chart with both
+plt.plot(fallout_xgb_1, sensitivity_xgb_1, color = 'blue', label='%s' % 'ROC validation set')
+plt.plot(fallout_xgb_1_test, sensitivity_xgb_1_test, color = 'red', label='%s' % 'ROC test set')
+plt.plot(fallout_xgb_1_train, sensitivity_xgb_1_train, color = 'black', label='%s' % 'ROC train set')
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for all XGB models on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+
+data = {'Dataset': ['Validation Set', 'Test Set', 'Train set'], 
+        'Accuracy': [accuracy_XGB_1, accuracy_XGB_1_test, accuracy_XGB_1_train],
+        'Recall': [recall_XGB_1, recall_XGB_1_test, recall_XGB_1_train],
+        'AUC': [auc_XGB_1, auc_XGB_1_test, auc_XGB_1_train]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison.sort_values(["AUC"], ascending = False))
+
+
+
+# overfitting assesment
+
+fallout_xgb_1, sensitivity_xgb_1, thresholds_xgb_1 = roc_curve(y_eval, prob_deposit_xgb_1)
+fallout_xgb_1_test, sensitivity_xgb_1_test, thresholds_xgb_1_test = roc_curve(y_test, prob_deposit_xgb_1_test)
+fallout_xgb_1_train, sensitivity_xgb_1_train, thresholds_xgb_1_train = roc_curve(y_train, prob_deposit_xgb_1_train)
+
+
+# ROC Chart with both
+plt.plot(fallout_xgb_1, sensitivity_xgb_1, color = 'blue', label='%s' % 'ROC validation set')
+plt.plot(fallout_xgb_1_test, sensitivity_xgb_1_test, color = 'red', label='%s' % 'ROC test set')
+plt.plot(fallout_xgb_1_train, sensitivity_xgb_1_train, color = 'black', label='%s' % 'ROC train set')
+
+
+plt.plot([0, 1], [0, 1], linestyle='--', label='%s' % 'Random Prediction')
+plt.title("ROC Chart for all XGB models on the Probability of Deposit")
+plt.xlabel('Fall-out')
+plt.ylabel('Sensitivity')
+plt.legend()
+plt.show()
+plt.close()
+
+
+data = {'Dataset': ['Validation Set', 'Test Set', 'Train set'], 
+        'Accuracy': [accuracy_XGB_1, accuracy_XGB_1_test, accuracy_XGB_1_train],
+        'Recall': [recall_XGB_1, recall_XGB_1_test, recall_XGB_1_train],
+        'AUC': [auc_XGB_1, auc_XGB_1_test, auc_XGB_1_train]
+        } 
+comparison = pd.DataFrame(data) 
+print(comparison.sort_values(["AUC"], ascending = False))
+
+
+

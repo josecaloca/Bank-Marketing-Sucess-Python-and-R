@@ -1461,14 +1461,16 @@ For this model we will use the cross validation technique. We will use the K-fol
 
 The procedure has a single parameter called k that refers to the number of groups that a given data sample is to be split into. A common practice in Machine Learning projects and the literature is to set this k parameter in 10.
 
-Now we proceed to create a gradient boosted tree model using two hyperparameters:
+Now we proceed to create a gradient boosted tree model using 3 hyperparameters:
 
 -   Learning rate: The learning rate corresponds to how quickly the error is corrected from each tree to the next and is a simple multiplier and this value is between 0 and 1.
 
--   Number of trees: It refers to the number of trees used for the ensembling process.
+-   Number of trees (n_estimators): It refers to the number of trees used for the ensembling process.
+
+-   max_depth: The maximum depth of a tree. Most commonly used values are [3 - 10]
 
 ```{python}
-clf_gbt3 = xgb.XGBClassifier(learning_rate = 0.1, max_depth = 7)
+clf_gbt3 = xgb.XGBClassifier(learning_rate = 0.01, max_depth = 7, n_estimators = 300)
 ```
 
 Calculate the cross validation scores for 10 folds
