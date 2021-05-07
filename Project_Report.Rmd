@@ -1993,6 +1993,8 @@ The following table shows the performance of all models. The table is sorted des
 
 -   Gradient Boosting Trees Model 1
 
+-   Reduced Gradient Boosting Trees Model
+
 -   Cross Validated Gradient Boosting Trees Model
 
 -   Random Forest
@@ -2267,6 +2269,8 @@ Our goal was to create a model that best identifies and classifies those custome
 As mentioned before, this model by its nature can quickly overfit and ended up being this the case. Our model reported great results in the training data and when exposed to the test and validation, this model dropped between 9 - 10 % in the value of the metrics. However, the value of the metrics when exposed to the 2 unknown datasets (test and validation) differed around 1%, showing some kind of robustness in the predictions.
 
 Our ***Gradient Boosting Tree model,*** although is overfitted, can predict around 88% of the 2 categories: customers that will subscribe to a term deposit and customers that will not. The error of accuracy when new data is present is around 1%.
+
+Lastly, we can identify the factors behind the influence of a customer to subscribe to a term deposit or not. As per our analysis of best variables in the [Reduced Gradient Boosting Trees Model] section, we found that **duration, euribor3m, age, campaign and cons.price.idx** are the key determinants in the probability of a customer to subscribe to a term deposit.
 
 As a proposal for improvement of this model, the overfitting problem could be improved by trying different hyperparameters and tunning them accordingly by a grid search. Also, we could think on trying a different sampling technique, for example, oversampling. Also, we could do some dimensionality reduction and try regularisation techniques on all the models. Then we can choose the model that reports the best Recall.
 
